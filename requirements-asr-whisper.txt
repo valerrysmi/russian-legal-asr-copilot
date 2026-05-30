@@ -1,0 +1,1 @@
+-r russian-legal-asr/asr_service_whisper/requirements.txt

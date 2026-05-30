@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Legal ASR + LegalCopilot Timeline</title>
+  <link rel="stylesheet" href="/styles.css?v=unified-example-1" />
+</head>
+<body>
+  <main class="page">
+    <header class="header">
+      <div>
+        <h1>Legal ASR + LegalCopilot Timeline</h1>
+        <p>Единый интерфейс: распознавание аудио, сбор транскрипции и юридический анализ в одном окне.</p>
+      </div>
+      <div id="statusBadge" class="badge warn">Ожидание</div>
+    </header>
+
+    <section class="card">
+      <h2>1. Сессия</h2>
+      <div class="row">
+        <label>
+          Консультация из data/input
+          <select id="consultationSelect"></select>
+        </label>
+        <label>
+          Окон copilot
+          <input id="limit" type="number" min="0" step="1" value="0" />
+        </label>
+      </div>
+      <div class="row infra-row">
+        <label>
+          Режим запуска
+          <select id="runMode">
+            <option value="realtime">Realtime: передавать части сразу</option>
+            <option value="batch">Batch: сначала вся транскрипция</option>
+          </select>
+        </label>
+        <label>
+          Realtime factor
+          <input id="realtimeFactor" type="number" min="0" step="0.1" value="0" />
+        </label>
+      </div>
+      <div class="row infra-row">
+        <label>
+          Redis host
+          <input id="redisHost" value="localhost" />
+        </label>
+        <label>
+          Redis port
+          <input id="redisPort" value="6380" />
+        </label>
+      </div>
+      <div class="actions">
+        <button id="runBtn">Запустить сессию</button>
+        <button id="stopBtn" class="secondary" disabled>Остановить</button>
+        <button id="refreshBtn" class="secondary">Обновить</button>
+      </div>
+      <div class="info">
+        <div><b>Session ID:</b> <span id="sessionId">—</span></div>
+        <div><b>Output:</b> <span id="outputDir">—</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>2. Голос юриста</h2>
+      <p class="muted">Если Hugging Face недоступен, запустите speaker worker в режиме <code>SPEAKER_MODE=disabled</code>. Тогда все реплики будут помечены как Client, но пайплайн завершится.</p>
+      <div id="speakerState" class="user-status compact warning">
+        <div class="user-status-title">Speaker worker запускается отдельно</div>
+        <div class="user-status-meta">
+          <span>Режим для быстрой проверки: disabled</span>
+          <span>Для speaker-id нужен HF_TOKEN и доступ к pyannote/embedding</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3. Консультация</h2>
+      <div class="info">
+        <div><b>Источник:</b> <span id="audioSourceMode">data/input</span></div>
+        <div><b>Аудиофайл:</b> <span id="audioFileName">—</span></div>
+        <div><b>Передача:</b> <span id="transferMode">realtime chunks</span></div>
+        <div><b>Статус обработки:</b> <span id="pipelineState">—</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Transcript and LegalCopilot prompts</h2>
+      <div id="conversationTimeline" class="conversation-timeline"></div>
+    </section>
+
+    <section class="card">
+      <h2>Recommended articles</h2>
+      <p class="muted">Статьи извлекаются из вывода LegalCopilot, если они присутствуют в результате.</p>
+      <div class="article-library">
+        <div id="articleLibrary" class="article-library-list"></div>
+        <div id="articleViewer" class="article-viewer empty">
+          <div class="article-viewer-title">Текст статьи</div>
+          <div class="article-viewer-body">Выберите статью из списка слева.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>LegalCopilot analysis</h2>
+      <div class="analysis-grid">
+        <div class="analysis-panel">
+          <div class="analysis-row">
+            <span class="analysis-label">Route</span>
+            <span id="legalRoute" class="badge">—</span>
+          </div>
+          <div class="analysis-row">
+            <span class="analysis-label">Groundedness</span>
+            <span id="legalGrounded" class="badge">—</span>
+          </div>
+          <div class="analysis-row">
+            <span class="analysis-label">Confidence</span>
+            <span id="legalConfidence">—</span>
+          </div>
+          <div class="analysis-row">
+            <span class="analysis-label">Main question</span>
+            <span id="legalQuestion">—</span>
+          </div>
+        </div>
+
+        <div class="analysis-panel">
+          <h3>Questions</h3>
+          <ul id="legalQuestions" class="analysis-list"></ul>
+          <h3>Retrieved articles</h3>
+          <ul id="legalArticles" class="analysis-list"></ul>
+        </div>
+      </div>
+
+      <div class="analysis-block">
+        <h3>Answer</h3>
+        <div id="legalAnswer" class="analysis-text">—</div>
+      </div>
+
+      <div class="analysis-grid">
+        <div class="analysis-panel">
+          <h3>Lawyer phrase review</h3>
+          <div id="lawyerCheckStatus" class="analysis-text">—</div>
+          <ul id="lawyerFlaggedPhrases" class="analysis-list"></ul>
+        </div>
+        <div class="analysis-panel">
+          <h3>Errors and warnings</h3>
+          <ul id="legalErrors" class="analysis-list"></ul>
+          <div id="legalBridgeError" class="analysis-text"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Итоговый transcript.txt</h2>
+      <p class="muted">После обработки здесь появится итоговая расшифровка.</p>
+      <pre id="transcriptText" class="pre transcript-pre">—</pre>
+    </section>
+
+    <section class="card">
+      <h2>Raw events</h2>
+      <pre id="eventsLog" class="pre events"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Realtime events</h2>
+      <pre id="realtimeEventsLog" class="pre events"></pre>
+    </section>
+  </main>
+
+  <script src="/app.js?v=unified-example-1"></script>
+</body>
+</html>

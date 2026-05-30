@@ -1,0 +1,1 @@
+-r legal_copilot/requirements.txt

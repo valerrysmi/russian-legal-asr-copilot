@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>legal_copilot - Streaming Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="background">
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <div class="grid"></div>
+  </div>
+
+  <main class="page">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Streaming Legal RAG Demo</p>
+        <h1>LegalCopilot</h1>
+        <p class="hero-text">
+          Демонстрация показывает, как система принимает последовательные куски транскрипции,
+          накапливает контекст, выделяет вопросы, ищет релевантные нормы и собирает юридический ответ.
+        </p>
+      </div>
+      <div class="hero-actions">
+        <label class="transcript-picker" for="transcriptSelect">
+          <span>Транскрипт demo</span>
+          <select id="transcriptSelect" class="sort-select">
+            <option value="transcript_1.txt">transcript_1.txt — сделка с долей в ООО</option>
+            <option value="transcript_2.txt">transcript_2.txt — покупка дома в залоге</option>
+            <option value="transcript_3.txt">transcript_3.txt — просрочка по ДДУ</option>
+          </select>
+        </label>
+        <button id="playBtn" class="primary-btn">Проиграть шаги</button>
+        <button id="resetBtn" class="ghost-btn">Сбросить</button>
+      </div>
+    </section>
+
+    <section class="mode-switch">
+      <button id="userModeBtn" class="mode-btn active">Пользовательский режим</button>
+      <button id="debugModeBtn" class="mode-btn">Debug demo</button>
+    </section>
+
+    <div id="backendNotice" class="backend-notice" hidden></div>
+
+    <section id="userWorkspace" class="user-workspace active">
+      <div class="user-grid">
+        <article class="card user-chat-card">
+          <div class="card-head">
+            <h2>Обработанная часть транскрипции</h2>
+            <span class="meta-chip" id="userChunkLabel">chunk_1</span>
+          </div>
+          <div id="conversationList" class="conversation-list"></div>
+        </article>
+
+        <section class="user-side">
+          <article class="card user-answer-card emphasis">
+            <div class="card-head">
+              <h3>Вопрос и ответ модели</h3>
+            </div>
+            <div class="user-qa-block">
+              <p class="user-qa-label">Вопрос</p>
+              <div class="query-box" id="userActiveQuestion"></div>
+            </div>
+            <div class="user-qa-block">
+              <p class="user-qa-label">Ответ</p>
+              <div class="answer-box" id="userAnswerText"></div>
+            </div>
+          </article>
+
+          <article class="card user-articles-card">
+            <div class="card-head">
+              <h3>Ссылки на статьи</h3>
+              <div class="head-actions">
+                <label class="sort-label" for="userArticleSort">Сортировка</label>
+                <select id="userArticleSort" class="sort-select">
+                  <option value="score">По скору</option>
+                  <option value="number">По номеру</option>
+                </select>
+              </div>
+            </div>
+            <div id="userArticleList" class="article-list"></div>
+          </article>
+        </section>
+      </div>
+    </section>
+
+    <section id="debugWorkspace" class="dashboard mode-pane">
+      <aside class="sidebar card">
+        <div class="card-head">
+          <h2>Поток чанков</h2>
+          <span class="meta-chip" id="sessionLabel">session: streaming-demo</span>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </aside>
+
+      <section class="workspace">
+        <div class="status-grid">
+          <article class="status-card card">
+            <p class="status-label">Активный чанк</p>
+            <p class="status-value" id="chunkName">chunk_1</p>
+          </article>
+          <article class="status-card card">
+            <p class="status-label">Вопросов извлечено</p>
+            <p class="status-value" id="questionCount">0</p>
+          </article>
+          <article class="status-card card">
+            <p class="status-label">Retrieval-веток</p>
+            <p class="status-value" id="retrievalCount">0</p>
+          </article>
+          <article class="status-card card">
+            <p class="status-label">Grounding</p>
+            <p class="status-value" id="groundingValue">—</p>
+          </article>
+        </div>
+
+        <div class="panel-grid">
+          <article class="panel card">
+            <div class="card-head">
+              <h3>Входящий чанк</h3>
+              <span class="meta-chip">incoming_chunk</span>
+            </div>
+            <pre class="code-block" id="incomingChunk"></pre>
+          </article>
+
+          <article class="panel card">
+            <div class="card-head">
+              <h3>Что система добавила в контекст</h3>
+              <span class="meta-chip" id="appendedCount">0 новых реплик</span>
+            </div>
+            <div id="appendedTurns" class="turn-list"></div>
+          </article>
+
+          <article class="panel card">
+            <div class="card-head">
+              <h3>Извлеченные вопросы</h3>
+              <span class="meta-chip">active_user_query</span>
+            </div>
+            <div class="query-box" id="activeQuestion"></div>
+            <div class="question-list" id="questionList"></div>
+          </article>
+
+          <article class="panel card">
+            <div class="card-head">
+              <h3>Этапы обработки</h3>
+              <span class="meta-chip">live pipeline</span>
+            </div>
+            <div class="stages" id="stageList"></div>
+          </article>
+        </div>
+
+        <div class="result-grid">
+          <article class="result-panel card">
+            <div class="card-head">
+              <h3>Retrieval по каждому вопросу</h3>
+              <span class="meta-chip" id="topicLabel">topics</span>
+            </div>
+            <div id="retrievalBranchList" class="branch-list"></div>
+          </article>
+
+          <article class="result-panel card emphasis">
+            <div class="card-head">
+              <h3>Итоговый ответ для пользователя</h3>
+              <span class="meta-chip" id="answerSource">template_demo</span>
+            </div>
+            <div class="answer-box" id="answerText"></div>
+            <div class="fact-box" id="factCheck"></div>
+            <div class="fact-box lawyer-check-box" id="lawyerPhraseCheck"></div>
+          </article>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="articleModal" class="modal-backdrop" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="articleModalTitle">
+      <div class="card-head modal-head">
+        <div>
+          <p class="modal-kicker">Текст статьи</p>
+          <h3 id="articleModalTitle">Статья</h3>
+        </div>
+        <button id="articleModalClose" class="modal-close" aria-label="Закрыть">×</button>
+      </div>
+      <div class="modal-meta" id="articleModalMeta"></div>
+      <div class="modal-body" id="articleModalBody"></div>
+    </div>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

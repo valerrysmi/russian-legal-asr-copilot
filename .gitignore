@@ -1,0 +1,54 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+legal_copilot/config/yandex_api_key.txt
+legal_copilot/config/yandex_folder_id.txt
+
+# Runtime outputs
+runs/
+logs/
+*.log
+dump.rdb
+
+# ASR data and generated workspaces
+russian-legal-asr/data/output/
+russian-legal-asr/data/web_workspace/
+russian-legal-asr/data/input/*/*.mp3
+russian-legal-asr/data/input/*/*.m4a
+russian-legal-asr/data/input/*/*.wav
+russian-legal-asr/data/input/*/*.flac
+russian-legal-asr/data/input/*/*.ogg
+russian-legal-asr/data/input/*/*.opus
+russian-legal-asr/data/input/*/*.aac
+russian-legal-asr/data/input/*/*.wma
+
+# Model and cache artifacts
+.cache/
+*.ckpt
+*.bin
+*.pt
+*.pth
+*.onnx
+*.safetensors
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
